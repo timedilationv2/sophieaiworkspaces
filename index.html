@@ -1,25 +1,766 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SophieAI Workspace</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>sophieAi</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Fira+Code&display=swap"rel="stylesheet" />
+
+<!-- Prism for code highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" defer></script>
+
+<style>
+:root{
+  /* Calming Color Palette - Night Mode */
+  --bg-dark-start: #1e1e2e;
+  --bg-dark-end: #11111b;
+  --panel-bg-dark: rgba(30, 30, 46, 0.7);
+  --panel-border-dark: rgba(137, 180, 250, 0.2);
+  --text-dark: #cdd6f4;
+  --text-dark-muted: #a6adc8;
+  --primary-dark: #89b4fa; /* Pastel Blue */
+  --secondary-dark: #b4befe; /* Lavender */
+  --danger-dark: #f38ba8; /* Pastel Red */
+  --focus-dark: #a6e3a1; /* Pastel Green */
+  --link-dark: #94e2d5; /* Teal */
+  --ai-glow: #cba6f7; /* Mauve for AI */
+
+  /* Calming Color Palette - Day Mode */
+  --bg-light: #f4f7fa;
+  --panel-bg-light: rgba(255, 255, 255, 0.9);
+  --panel-border-light: rgba(0, 0, 0, 0.08);
+  --text-light: #334155;
+  --text-light-muted: #64748b;
+  --primary-light: #60a5fa;
+  --danger-light: #f87171;
+  --focus-light: #3b82f6;
+  --link-light: #3b82f6;
+}
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+body{
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(135deg, var(--bg-dark-start), var(--bg-dark-end));
+  color: var(--text-dark);
+  transition:background .5s,color .5s;
+  display: flex;
+}
+/* Main Layout */
+#sidebar {
+    width: 200px;
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.1);
+    border-right: 1px solid var(--panel-border-dark);
+    padding: 1.5rem 1rem;
+    transition: background .5s, border-color .5s;
+    z-index: 10;
+}
+#workspace-canvas {
+    flex-grow: 1;
+    position: relative;
+    overflow: hidden;
+    height: 100vh;
+}
+.day-mode #sidebar {
+    background: #fdfdff;
+    border-right-color: var(--panel-border-light);
+}
+
+/* Draggable Window (Panel) */
+.panel{
+  position: absolute;
+  min-width: 380px;
+  max-width: 600px;
+  background: var(--panel-bg-dark);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-radius:16px;
+  border:1px solid var(--panel-border-dark);
+  box-shadow:0 8px 32px rgba(0,0,0,.22);
+  transition:transform .3s,box-shadow .3s,background .5s,border-color .5s, opacity .3s, height .3s;
+  display:flex;flex-direction:column;
+  resize: both;
+  overflow: hidden;
+}
+.panel.minimized {
+    height: 49px; /* Header height */
+    resize: none;
+    overflow: hidden;
+}
+.panel-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding: 0.75rem 1rem;
+    border-bottom:1px solid var(--panel-border-dark);
+    cursor: move;
+    flex-shrink: 0;
+}
+.panel-title{color: var(--text-dark); font-weight: 500;}
+.panel-controls button {
+    padding: 0.25rem;
+    border-radius: 99px;
+    background: transparent;
+    opacity: 0.6;
+}
+.panel-controls button:hover {
+    background: rgba(255,255,255,0.1);
+    opacity: 1;
+}
+.panel-body{padding:1.5rem;flex-grow:1;overflow-y:auto;}
+.day-mode .panel{
+  background: var(--panel-bg-light);border-color: var(--panel-border-light);
+  box-shadow:0 4px 12px rgba(0,0,0,.06);
+}
+.day-mode .panel-header{border-bottom-color: #e5e7eb;}
+.day-mode .panel-title{color: var(--text-light);text-shadow:none;}
+.day-mode .panel-controls button:hover { background: rgba(0,0,0,0.05); }
+
+/* Sidebar buttons */
+.sidebar-btn {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-dark-muted);
+    transition: background-color .2s, color .2s;
+}
+.sidebar-btn:hover {
+    background: rgba(137, 180, 250, 0.1);
+    color: var(--primary-dark);
+}
+.day-mode .sidebar-btn { color: var(--text-light-muted); }
+.day-mode .sidebar-btn:hover { background: #f0f5ff; color: var(--primary-light); }
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s, visibility .3s;
+    z-index: 1000;
+}
+.modal-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+.modal-content {
+    width: 90%;
+    max-width: 600px;
+}
+
+/* Ask AI Chat styles */
+.chat-history {
+    flex-grow: 1;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.chat-message {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+.chat-message.user {
+    background: var(--primary-dark);
+    color: var(--bg-dark-start);
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+}
+.chat-message.ai {
+    background: rgba(255,255,255,0.1);
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+}
+.day-mode .chat-message.user { background: var(--primary-light); color: #fff; }
+.day-mode .chat-message.ai { background: #e5e7eb; }
+
+/* General Styles from previous version */
+textarea,input[type=text],input[type=url],input[type=email]{
+  background:rgba(0,0,0,.25);border:1px solid var(--panel-border-dark);color: var(--text-dark);
+  width:100%;border-radius:12px;padding:.75rem 1rem;font-size:.875rem;transition:all .3s;
+}
+textarea::placeholder,input::placeholder{color: var(--text-dark-muted);}
+textarea:focus,input:focus{
+  border-color: var(--focus-dark);box-shadow:0 0 12px 0px var(--focus-dark);
+}
+.btn{
+  padding:.75rem 1.5rem;border-radius:9999px;font-weight:500;cursor:pointer;
+  transition:transform .2s,box-shadow .2s,background .3s;
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  border:1px solid transparent;text-shadow:0 0 3px rgba(0,0,0,.2);
+}
+.btn:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.2);}
+.btn:active{transform:translateY(-1px);}
+.btn[disabled] { cursor: not-allowed; opacity: 0.6; }
+.icon-btn{padding:.6rem;}
+.item-card{
+  background-color:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05);
+  display:flex;flex-direction:column;padding:1rem;border-radius:16px;margin-bottom:.75rem;gap:.5rem;transition:background-color .5s,border-color .5s;
+}
+.item-meta{display:flex;justify-content:space-between;align-items:center;}
+.btn-primary{ background: var(--primary-dark); color:#1e1e2e; }
+.btn-secondary{ background-color:rgba(137, 180, 250, 0.15); color: var(--primary-dark); border-color:rgba(137, 180, 250, 0.2); }
+.btn-danger{ background: var(--danger-dark); color:#1e1e2e; }
+.btn-ai { background: var(--ai-glow); color: #1e1e2e; box-shadow: 0 0 10px 0px var(--ai-glow); }
+
+.day-mode textarea,.day-mode input[type=text],.day-mode input[type=url],.day-mode input[type=email]{ background:#fff;border-color:#d1d5db;color: var(--text-light); }
+.day-mode textarea::placeholder,.day-mode input::placeholder{color:#9ca3af;}
+.day-mode textarea:focus,.day-mode input:focus{ border-color: var(--focus-light);box-shadow:0 0 0 3px rgba(59,130,246,.2); }
+.day-mode .btn-primary{background: var(--primary-light); color: #fff; border-color:transparent;}
+.day-mode .btn-secondary{background:#e5e7eb;color: var(--text-light);border-color:transparent;}
+.day-mode .btn-danger{background: var(--danger-light); color: #fff; border-color:transparent;}
+.day-mode .btn-ai { background: #a855f7; color: #fff; box-shadow: 0 0 10px 0px #a855f7; }
+.day-mode .item-card{background:#f9fafb;border-color:#e5e7eb;}
+
+.toast{
+  position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
+  color:#fff;padding:.75rem 1.5rem;border-radius:9999px;font-weight:500;
+  opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s,transform .3s;z-index:1001;
+  box-shadow:0 5px 15px rgba(0,0,0,.2);
+}
+.toast.show{opacity:1;visibility:visible;}
+.loader {
+    font-size: 10px; margin: 0px auto; text-indent: -9999em; width: 2em; height: 2em;
+    border-radius: 50%; background: var(--primary-dark);
+    background: linear-gradient(to right, var(--primary-dark) 10%, rgba(255, 255, 255, 0) 42%);
+    position: relative; animation: load3 1.4s infinite linear; transform: translateZ(0);
+}
+@keyframes load3 { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
 </head>
 <body>
-  <div class="sidebar">
-    <button data-panel="links">🔗 Links</button>
-    <button data-panel="notes">📝 Notes</button>
-    <button data-panel="flashcards">📚 Flashcards</button>
-    <button data-panel="miniword">🗒️ Mini Word</button>
-    <button id="toggle-theme">🌗 Toggle</button>
-  </div>
 
-  <main class="workspace">
-    <section id="panel-content">Welcome to your workspace.</section>
-  </main>
+<aside id="sidebar">
+    <h1 class="text-2xl font-bold text-center mb-2">sophieAi</h1>
+    <p class="text-xs text-center text-gray-500 mb-8">Your Modular Workspace</p>
+    
+    <button class="sidebar-btn" data-module="links">🔗 Links</button>
+    <button class="sidebar-btn" data-module="clipboard">📋 Clipboard</button>
+    <button class="sidebar-btn" data-module="code">💻 Code Snippets</button>
+    <button class="sidebar-btn" data-module="notes">📝 Notes</button>
+    <button class="sidebar-btn" data-module="stickies">📌 Sticky Notes</button>
+    <button class="sidebar-btn" data-module="ask-ai">💬 Ask AI</button>
+    <button class="sidebar-btn" data-module="mail-modal">✉️ Sophie, an email writer.</button>
+    
+    <div class="absolute bottom-4 left-4">
+        <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="theme-checkbox" class="hidden"/>
+            <div class="w-10 h-6 bg-gray-600 rounded-full flex items-center p-1 transition-all" id="theme-slider-bg">
+                <div class="w-4 h-4 bg-white rounded-full transform transition-transform" id="theme-slider-dot"></div>
+            </div>
+            <span class="text-sm">Day Mode</span>
+        </label>
+    </div>
+</aside>
 
-  <script src="app.js"></script>
+<main id="workspace-canvas">
+  <!-- Draggable windows will be injected here by JS -->
+</main>
+
+<!-- Email Modal -->
+<div id="mail-modal" class="modal-overlay">
+    <div class="modal-content">
+        <section id="email-panel" class="panel !absolute" data-type="mail">
+            <div class="panel-header">
+                <h2 class="panel-title">✉️ Sophie, an email writer.</h2>
+                <div class="panel-controls">
+                    <button data-act="close-modal" aria-label="Close">✖</button>
+                </div>
+            </div>
+            <div class="panel-body">
+              <form id="email-form" class="space-y-4">
+                <input type="email" id="email-to" placeholder="To:" required>
+                <input type="text" id="email-subject" placeholder="Subject:">
+                <textarea id="email-body" placeholder="Email body..." rows="5"></textarea>
+                <div class="flex gap-2 justify-end">
+                    <button type="button" id="ai-draft-btn" class="btn btn-ai">✨ AI Draft</button>
+                    <a id="generate-email-link" href="#" class="btn btn-primary">Generate Mailto</a>
+                </div>
+              </form>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div id="toast-notification" class="toast"></div>
+
+<script>
+// ===== Constants =====
+const LS_KEY = 'sophieAiWorkspace_v4';
+const LS_THEME_KEY = 'sophieAiTheme_v3';
+
+// ===== State =====
+let state = {
+  windows: {
+    links: { x: 20, y: 20, z: 2, w: 450, h: 400, visible: true, minimized: false },
+    clipboard: { x: 490, y: 50, z: 1, w: 450, h: 400, visible: true, minimized: false },
+    code: { x: 70, y: 440, z: 1, w: 450, h: 400, visible: true, minimized: false },
+    notes: { x: 540, y: 470, z: 1, w: 450, h: 400, visible: true, minimized: false },
+    stickies: { x: 960, y: 80, z: 1, w: 450, h: 400, visible: false, minimized: false },
+    "ask-ai": { x: 980, y: 490, z: 1, w: 450, h: 500, visible: false, minimized: false },
+  },
+  data: {
+    links: [],
+    clipboard: [],
+    code: [],
+    notes: [],
+    stickies: [],
+    aiChatHistory: []
+  }
+};
+let highestZ = 2;
+
+// ===== Helpers =====
+const $ = (sel, scope=document) => scope.querySelector(sel);
+const $$ = (sel, scope=document) => [...scope.querySelectorAll(sel)];
+const ts = () => new Date().toLocaleString('en-US',{dateStyle:'short',timeStyle:'short'});
+
+// ===== UI Logic (Toast, Copy, Theme) =====
+let toastTimer;
+function showToast(msg){
+  const t = $('#toast-notification');
+  clearTimeout(toastTimer);t.textContent=msg;t.classList.add('show');
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+}
+async function copyText(text){
+  try{await navigator.clipboard.writeText(text);showToast('Copied!');}
+  catch(e){console.error(e);showToast('Copy failed');}
+}
+
+const themeToggle = $('#theme-checkbox');
+const themeSliderBg = $('#theme-slider-bg');
+const themeSliderDot = $('#theme-slider-dot');
+function setTheme(isDay){
+  document.body.classList.toggle('day-mode', isDay);
+  themeToggle.checked = isDay;
+  themeSliderBg.classList.toggle('bg-blue-500', isDay);
+  themeSliderDot.style.transform = isDay ? 'translateX(16px)' : 'translateX(0)';
+  localStorage.setItem(LS_THEME_KEY, isDay ? 'day' : 'night');
+}
+$('#theme-slider-bg').parentElement.addEventListener('click', () => setTheme(!themeToggle.checked));
+
+// ===== Data Persistence =====
+function save(){localStorage.setItem(LS_KEY, JSON.stringify(state));}
+function load(){
+  const raw = localStorage.getItem(LS_KEY);
+  if(raw){
+      try {
+        const loadedState = JSON.parse(raw);
+        for (const key in state.windows) {
+            if (loadedState.windows && loadedState.windows[key]) {
+                state.windows[key] = loadedState.windows[key];
+            }
+        }
+        state.data = loadedState.data || state.data;
+        if (!state.data.aiChatHistory) state.data.aiChatHistory = [];
+        highestZ = Math.max(...Object.values(state.windows).map(w => w.z)) || 1;
+      } catch(e) {
+        console.error("Failed to parse state from localStorage", e);
+        localStorage.removeItem(LS_KEY);
+      }
+  }
+  renderAllWindows();
+}
+
+// ===== Gemini API Calls =====
+async function callGemini(prompt, button) {
+    if (button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<div class="loader"></div>';
+        button.disabled = true;
+    }
+    try {
+        const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+        const result = await response.json();
+        if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+            return result.candidates[0].content.parts[0].text;
+        } else {
+            throw new Error('Could not extract text from API response.');
+        }
+    } catch (error) {
+        console.error("Gemini API call failed:", error);
+        showToast("AI request failed. Please try again.");
+        return null;
+    } finally {
+        if (button) {
+            button.innerHTML = button.dataset.originalText || 'Submit';
+            button.disabled = false;
+        }
+    }
+}
+
+async function callGeminiJSON(prompt, schema, button) {
+    if (button) {
+        button.dataset.originalText = button.innerHTML;
+        button.innerHTML = '<div class="loader"></div>';
+        button.disabled = true;
+    }
+    try {
+        const payload = {
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: schema
+            }
+        };
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+        const result = await response.json();
+        if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+            return JSON.parse(result.candidates[0].content.parts[0].text);
+        } else {
+            throw new Error('Could not extract JSON from API response.');
+        }
+    } catch (error) {
+        console.error("Gemini JSON call failed:", error);
+        showToast("AI organization failed.");
+        return null;
+    } finally {
+        if (button) {
+            button.innerHTML = button.dataset.originalText || 'Submit';
+            button.disabled = false;
+        }
+    }
+}
+
+// ===== Window & Content Rendering =====
+function getWindowHTML(id, title) {
+    let extraControls = '';
+    if (id === 'stickies') {
+        extraControls = `<button data-act="ai-organize" class="btn btn-ai icon-btn" title="Organize with AI">✨</button>`;
+    }
+    return `
+    <div id="${id}-panel" class="panel" data-module="${id}">
+        <div class="panel-header">
+            <h2 class="panel-title">${title}</h2>
+            <div class="panel-controls flex items-center gap-2">
+                ${extraControls}
+                <button data-act="minimize" aria-label="Minimize">－</button>
+                <button data-act="close" aria-label="Close">✖</button>
+            </div>
+        </div>
+        <div class="panel-body"></div>
+    </div>`;
+}
+
+function renderAllWindows() {
+    const canvas = $('#workspace-canvas');
+    canvas.innerHTML = ''; // Clear canvas
+    Object.keys(state.windows).forEach(id => {
+        const winState = state.windows[id];
+        const title = $(`[data-module="${id}"]`).innerText;
+        const winHTML = getWindowHTML(id, title);
+        
+        canvas.insertAdjacentHTML('beforeend', winHTML);
+        const winEl = $(`#${id}-panel`);
+        
+        winEl.style.left = `${winState.x}px`;
+        winEl.style.top = `${winState.y}px`;
+        winEl.style.width = `${winState.w}px`;
+        winEl.style.height = `${winState.h}px`;
+        winEl.style.zIndex = winState.z;
+        winEl.classList.toggle('hidden', !winState.visible);
+        winEl.classList.toggle('minimized', winState.minimized);
+        
+        renderModuleContent(id);
+    });
+    addDragListeners();
+}
+
+function renderModuleContent(id) {
+    const panelBody = $(`#${id}-panel .panel-body`);
+    if (!panelBody) return;
+    
+    switch(id) {
+        case 'links':
+            panelBody.innerHTML = `<form id="add-link-form" class="flex flex-col sm:flex-row gap-3 mb-4"><input type="text" id="link-title-input" placeholder="Secret name?" required><input type="url" id="link-url-input" placeholder="Magic portal URL?" required><button type="submit" class="btn btn-primary">Add</button></form><div id="links-list" class="space-y-2" data-list></div>`;
+            renderLinks();
+            break;
+        case 'clipboard':
+            panelBody.innerHTML = `<form id="add-clipboard-form" class="flex flex-col gap-3 mb-4"><textarea id="clipboard-input" placeholder="Paste content..." required rows="3"></textarea><button type="submit" class="btn btn-primary self-end">Add</button></form><div id="clipboard-list" data-list></div>`;
+            renderGeneric('clipboard', '#clipboard-list');
+            break;
+        case 'code':
+            panelBody.innerHTML = `<form id="add-code-form" class="flex flex-col gap-3 mb-4"><textarea id="code-input" class="code-editor" placeholder="Paste code..." required rows="4"></textarea><button type="submit" class="btn btn-primary self-end">Add</button></form><div id="code-list" data-list></div>`;
+            renderGeneric('code', '#code-list');
+            break;
+        case 'notes':
+             panelBody.innerHTML = `<form id="add-note-form" class="flex flex-col gap-3 mb-4"><textarea id="note-input" placeholder="Jot down a note..." required rows="3"></textarea><button type="submit" class="btn btn-primary self-end">Add</button></form><div id="notes-list" data-list></div>`;
+             renderGeneric('notes', '#notes-list');
+             break;
+        case 'stickies':
+             panelBody.innerHTML = `<div id="sticky-notes-list" class="sticky-notes-grid p-1"></div>`;
+             renderStickies();
+             break;
+        case 'ask-ai':
+             panelBody.innerHTML = `<div class="chat-history flex-grow"></div><form id="ask-ai-form" class="flex gap-2 p-2 border-t border-gray-700"><input type="text" id="ai-prompt-input" placeholder="Ask anything..." required class="flex-grow"><button type="submit" class="btn btn-primary">Send</button></form>`;
+             panelBody.parentElement.classList.add('flex', 'flex-col');
+             renderAiChat();
+             break;
+    }
+}
+
+// Specific content renderers
+function renderLinks(){
+  const list = $('#links-list');
+  if(!list) return;
+  list.innerHTML = state.data.links.map((l,i)=>`<div class="item-card"><div class="flex justify-between items-center"><a href="${l.url}" target="_blank" rel="noopener" class="link font-medium hover:underline">${l.title}</a><button data-act="del" data-type="links" data-index="${i}" class="btn btn-danger icon-btn" aria-label="Delete">🗑</button></div></div>`).join('') || `<p class="text-xs text-center text-gray-500">No links yet.</p>`;
+}
+
+function renderGeneric(type, containerSel){
+  const list = $(containerSel);
+  if(!list) return;
+  list.innerHTML = state.data[type].map((item,i)=>listTemplate(item,i,type)).join('') || `<p class="text-xs text-center text-gray-500">No entries yet.</p>`;
+}
+
+function listTemplate(item,i,type){
+  const canCopy = type!=='notes';
+  const isCode = type==='code';
+  const isNote = type==='notes';
+  const contentHTML = isCode ? `<pre class="item-content p-3 bg-black/20 rounded-lg whitespace-pre-wrap"><code class="language-javascript">${Prism.highlight(item.content, Prism.languages.javascript, 'javascript')}</code></pre>` : `<pre class="item-content">${item.content}</pre>`;
+  return `<div class="item-card"><div class="item-content-wrapper">${contentHTML}</div><div class="item-meta"><span class="item-timestamp text-xs">${item.timestamp || ''}</span><div class="flex gap-2">${isNote ? `<button data-act="ai-expand" data-type="notes" data-index="${i}" class="btn btn-ai icon-btn" title="Expand Note">✨+</button>` : ''}${isNote ? `<button data-act="ai-summarize" data-type="notes" data-index="${i}" class="btn btn-ai icon-btn" title="Summarize Note">✨-</button>` : ''}${isCode ? `<button data-act="ai-explain" data-type="code" data-index="${i}" class="btn btn-ai icon-btn" title="Explain Code">✨?</button>` : ''}${canCopy?`<button data-act="copy" data-type="${type}" data-index="${i}" class="btn btn-secondary icon-btn" title="Copy">📋</button>`:''}<button data-act="del" data-type="${type}" data-index="${i}" class="btn btn-danger icon-btn" title="Delete">🗑</button></div></div></div>`;
+}
+
+function renderStickies() {
+    const container = $('#sticky-notes-list');
+    if (!container) return;
+    container.innerHTML = state.data.stickies.map((sticky, i) => `
+        <div class="item-card !bg-yellow-200/10" data-index="${i}">
+            <textarea class="bg-transparent border-0 focus:ring-0 p-0 w-full text-sm text-yellow-100 placeholder-yellow-200/40" placeholder="New sticky..." rows="4">${sticky.content}</textarea>
+            <button data-act="del" data-type="stickies" data-index="${i}" class="btn btn-danger icon-btn self-end !p-1" title="Delete">🗑</button>
+        </div>
+    `).join('') || `<p class="text-xs text-center text-gray-500 col-span-full">No stickies. Add one with the button below.</p>`;
+    container.insertAdjacentHTML('beforeend', `<button data-act="add-sticky" class="btn btn-secondary w-full mt-2">Add Sticky</button>`);
+}
+
+function renderAiChat() {
+    const historyEl = $('.chat-history');
+    if (!historyEl) return;
+    historyEl.innerHTML = state.data.aiChatHistory.map(msg => `
+        <div class="chat-message ${msg.role}">${msg.parts[0].text}</div>
+    `).join('');
+    historyEl.scrollTop = historyEl.scrollHeight;
+}
+
+// ===== Event Listeners =====
+function addDragListeners() {
+    let activeWindow = null;
+    let offsetX, offsetY;
+    $$('.panel-header').forEach(header => {
+        header.addEventListener('mousedown', e => {
+            if (e.target.closest('button')) return;
+            activeWindow = header.parentElement;
+            offsetX = e.clientX - activeWindow.offsetLeft;
+            offsetY = e.clientY - activeWindow.offsetTop;
+            highestZ++;
+            activeWindow.style.zIndex = highestZ;
+            state.windows[activeWindow.dataset.module].z = highestZ;
+        });
+    });
+    document.addEventListener('mousemove', e => {
+        if (!activeWindow) return;
+        e.preventDefault();
+        let x = e.clientX - offsetX;
+        let y = e.clientY - offsetY;
+        const canvas = $('#workspace-canvas');
+        x = Math.max(0, Math.min(x, canvas.clientWidth - activeWindow.offsetWidth));
+        y = Math.max(0, Math.min(y, canvas.clientHeight - activeWindow.offsetHeight));
+        activeWindow.style.left = `${x}px`;
+        activeWindow.style.top = `${y}px`;
+    });
+    document.addEventListener('mouseup', () => {
+        if (activeWindow) {
+            const winState = state.windows[activeWindow.dataset.module];
+            winState.x = activeWindow.offsetLeft;
+            winState.y = activeWindow.offsetTop;
+            save();
+        }
+        activeWindow = null;
+    });
+}
+
+// Delegated actions
+$('#workspace-canvas').addEventListener('click', async e => {
+    const button = e.target.closest('button');
+    if (!button) return;
+    const action = button.dataset.act;
+    const panel = button.closest('.panel');
+    const moduleId = panel?.dataset.module;
+
+    if (action === 'close') { state.windows[moduleId].visible = false; panel.classList.add('hidden'); save(); }
+    else if (action === 'minimize') { state.windows[moduleId].minimized = !state.windows[moduleId].minimized; panel.classList.toggle('minimized'); save(); }
+    else if (action === 'add-sticky') { state.data.stickies.push({content: ''}); save(); renderStickies(); }
+    else if (action === 'ai-organize') {
+        const notesToOrganize = state.data.stickies.map(s => s.content).filter(c => c.trim() !== '');
+        if (notesToOrganize.length < 2) { showToast("Need at least 2 stickies to organize."); return; }
+        
+        const prompt = `Here are several notes. Please categorize them into logical groups. Provide a title for each group. The notes are: ${JSON.stringify(notesToOrganize)}`;
+        const schema = {
+            type: "OBJECT",
+            properties: {
+                categories: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: {
+                            title: { type: "STRING" },
+                            notes: { type: "ARRAY", items: { type: "STRING" } }
+                        }
+                    }
+                }
+            }
+        };
+        const result = await callGeminiJSON(prompt, schema, button);
+        if (result && result.categories) {
+            const newStickies = [];
+            result.categories.forEach(cat => {
+                newStickies.push({ content: `--- ${cat.title} ---` });
+                cat.notes.forEach(note => newStickies.push({ content: note }));
+            });
+            state.data.stickies = newStickies;
+            save();
+            renderStickies();
+            showToast("Stickies organized!");
+        }
+    }
+    
+    const type = button.dataset.type;
+    const index = button.dataset.index;
+    if (!type) return;
+
+    if (action === 'del') { state.data[type].splice(+index, 1); save(); type === 'stickies' ? renderStickies() : renderModuleContent(type); }
+    else if (action === 'copy') { copyText(state.data[type][+index].content); }
+    else if (action === 'ai-summarize' || action === 'ai-expand' || action === 'ai-explain') {
+        const content = state.data[type][+index].content;
+        let prompt = '';
+        if (action === 'ai-summarize') prompt = `Summarize this concisely:\n\n${content}`;
+        if (action === 'ai-expand') prompt = `Expand on this idea:\n\n${content}`;
+        if (action === 'ai-explain') prompt = `Explain this code snippet:\n\n${content}`;
+        const result = await callGemini(prompt, button);
+        if (result) { state.data.notes.push({ content: result, timestamp: ts() }); save(); renderModuleContent('notes'); showToast("AI result added to Notes!"); }
+    }
+});
+
+// Form submissions
+$('#workspace-canvas').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    if (form.id === 'ask-ai-form') {
+        const input = $('#ai-prompt-input');
+        const prompt = input.value.trim();
+        if (!prompt) return;
+        
+        state.data.aiChatHistory.push({ role: 'user', parts: [{ text: prompt }] });
+        renderAiChat();
+        form.reset();
+        
+        const response = await callGemini(prompt);
+        if (response) {
+            state.data.aiChatHistory.push({ role: 'model', parts: [{ text: response }] });
+            renderAiChat();
+        }
+        save();
+        return;
+    }
+
+    let input;
+    switch(form.id) {
+        case 'add-link-form': const title = $('#link-title-input').value.trim(); const url = $('#link-url-input').value.trim(); if (title && url) { state.data.links.push({ title, url }); renderLinks(); } break;
+        case 'add-clipboard-form': input = $('#clipboard-input'); if(input.value.trim()) state.data.clipboard.push({content: input.value.trim(), timestamp: ts()}); renderGeneric('clipboard', '#clipboard-list'); break;
+        case 'add-code-form': input = $('#code-input'); if(input.value.trim()) state.data.code.push({content: input.value.trim(), timestamp: ts()}); renderGeneric('code', '#code-list'); break;
+        case 'add-note-form': input = $('#note-input'); if(input.value.trim()) state.data.notes.push({content: input.value.trim(), timestamp: ts()}); renderGeneric('notes', '#notes-list'); break;
+    }
+    form.reset();
+    save();
+});
+
+// Sticky note content saving
+$('#workspace-canvas').addEventListener('input', e => {
+    const textarea = e.target.closest('textarea');
+    if (!textarea) return;
+    const panel = textarea.closest('.panel');
+    if (panel?.dataset.module === 'stickies') {
+        const card = textarea.closest('.item-card');
+        if (card) {
+            const index = card.dataset.index;
+            state.data.stickies[index].content = textarea.value;
+            save();
+        }
+    }
+});
+
+
+// Sidebar functionality
+$('#sidebar').addEventListener('click', e => {
+    const button = e.target.closest('button');
+    if (!button) return;
+    const moduleId = button.dataset.module;
+    if (moduleId === 'mail-modal') { $('#mail-modal').classList.add('show'); }
+    else if (state.windows[moduleId]) {
+        const winState = state.windows[moduleId];
+        winState.visible = true;
+        highestZ++;
+        winState.z = highestZ;
+        const winEl = $(`#${moduleId}-panel`);
+        winEl.classList.remove('hidden');
+        winEl.style.zIndex = winState.z;
+        save();
+    }
+});
+
+// Modal close
+$('#mail-modal').addEventListener('click', e => {
+    if (e.target.dataset.act === 'close-modal' || e.target.classList.contains('modal-overlay')) {
+        $('#mail-modal').classList.remove('show');
+    }
+});
+
+// AI Email Draft
+$('#ai-draft-btn')?.addEventListener('click', async e => {
+    const btn = e.target;
+    const subject = $('#email-subject').value;
+    if (!subject) { showToast("Please provide a subject for the AI."); return; }
+    const prompt = `Draft a friendly but professional email with the subject: "${subject}"`;
+    const draft = await callGemini(prompt, btn);
+    if (draft) { $('#email-body').value = draft; }
+});
+
+// Init
+load();
+setTheme(localStorage.getItem(LS_THEME_KEY) === 'day');
+</script>
 </body>
 </html>
-
