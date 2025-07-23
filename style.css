@@ -1,0 +1,73 @@
+:root {
+  --emerald: #00ff9d;
+  --twilight: #ff7f00;
+  --violet: #8f00ff;
+  --cyan: #00ffff;
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.2);
+  --blur: blur(20px);
+  --radius: 20px;
+  --text: #eaeaea;
+  --font: 'Inter', sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: linear-gradient(135deg, #0d1a26, #1e1e2e);
+  color: var(--text);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  transition: background 0.5s ease;
+}
+
+body.light-mode {
+  background: linear-gradient(135deg, #f8f9fa, #e2e8f0);
+  color: #1e293b;
+}
+
+.sidebar {
+  width: 240px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.sidebar button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  backdrop-filter: var(--blur);
+  transition: all 0.3s ease;
+}
+
+.sidebar button:hover {
+  background: rgba(0, 255, 157, 0.2);
+  border-color: var(--emerald);
+}
+
+.workspace {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+#panel-content {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  min-height: 80vh;
+  box-shadow: 0 4px 20px rgba(0, 255, 157, 0.05);
+  transition: all 0.4s ease;
+}
+
